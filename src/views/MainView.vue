@@ -8,12 +8,14 @@ import { ElLoading } from "element-plus";
 const tableData = ref([]);
 const reactiveQuery = ref({});
 const loading = ref(false);
+const fetchingError = ref(false);
 const throttle = createThrottle(500);
 
 getHouses();
 
 async function getHouses(query?: Query) {
     loading.value = true;
+    fetchingError.value = false;
 
     const loadIndicator = ElLoading.service({
         text: "Loading",
@@ -24,9 +26,8 @@ async function getHouses(query?: Query) {
         const params = query || {};
         const response = await api.get("/houses", { params });
         tableData.value = response.data?.data || [];
-        console.log(response.data?.data); // для наглядности
     } catch (error) {
-        console.error(error);
+        fetchingError.value = true;
     }
 
     loadIndicator.close();
@@ -78,10 +79,13 @@ function createThrottle(interval: number) {
             <HouseFilter @query="getHousesWithThrottle" />
             <div class="data">
                 <h1>Find your dream home!</h1>
-                <template v-if="!loading">
+                <template v-if="!loading && !fetchingError">
                     <HouseTable v-if="tableData && tableData.length" :data="tableData" />
                     <p v-else>Unfortunately nothing was found. Please change your search parameters and try again ;)</p>
                 </template>
+                <p v-if="fetchingError">
+                    An error occurred while loading. Please check your internet connection and try again.
+                </p>
             </div>
         </div>
     </div>
