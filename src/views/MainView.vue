@@ -3,22 +3,34 @@ import HouseFilter from "@/components/HouseFilter.vue";
 import HouseTable from "@/components/HouseTable.vue";
 import { api } from "@/api";
 import { ref, type Ref } from "vue";
+import { ElLoading } from "element-plus";
 
 const tableData = ref([]);
 const reactiveQuery = ref({});
+const loading = ref(false);
 const throttle = createThrottle(500);
 
 getHouses();
 
 async function getHouses(query?: Query) {
-    const params = query || {};
+    loading.value = true;
+
+    const loadIndicator = ElLoading.service({
+        text: "Loading",
+        background: "rgba(0, 0, 0, 0.0)",
+    });
+
     try {
+        const params = query || {};
         const response = await api.get("/houses", { params });
         tableData.value = response.data?.data || [];
-        console.log(response.data?.data);
+        console.log(response.data?.data); // для наглядности
     } catch (error) {
         console.error(error);
     }
+
+    loadIndicator.close();
+    loading.value = false;
 }
 
 /**
@@ -66,8 +78,10 @@ function createThrottle(interval: number) {
             <HouseFilter @query="getHousesWithThrottle" />
             <div class="data">
                 <h1>Find your dream home!</h1>
-                <HouseTable v-if="tableData && tableData.length" :data="tableData" />
-                <p v-else>Unfortunately nothing was found. Please change your search parameters and try again ;)</p>
+                <template v-if="!loading">
+                    <HouseTable v-if="tableData && tableData.length" :data="tableData" />
+                    <p v-else>Unfortunately nothing was found. Please change your search parameters and try again ;)</p>
+                </template>
             </div>
         </div>
     </div>
