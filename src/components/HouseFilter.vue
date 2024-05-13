@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, type Ref } from "vue";
+import { computed, ref, watch, type Ref } from "vue";
+const emit = defineEmits(["query"]);
 
 const name = ref("");
 const minPrice = ref("");
@@ -18,6 +19,21 @@ function makeInputsNumeric(inputs: Ref[]): void {
         });
     }
 }
+
+const queryParams = computed(() => {
+    let query: Query = {};
+    if (name.value.length > 0) query.name = name.value;
+    if (minPrice.value.length > 0) query.minprice = Number(minPrice.value);
+    if (maxPrice.value.length > 0) query.maxprice = Number(maxPrice.value);
+    if (bedrooms.value.length > 0) query.bedrooms = Number(bedrooms.value);
+    if (bathrooms.value.length > 0) query.bathrooms = Number(bathrooms.value);
+    if (storeys.value.length > 0) query.storeys = Number(storeys.value);
+    if (garages.value.length > 0) query.garages = Number(garages.value);
+
+    return query;
+});
+
+watch(queryParams, () => emit("query", queryParams.value));
 </script>
 
 <template>
