@@ -2,9 +2,11 @@
 import HouseFilter from "@/components/HouseFilter.vue";
 import HouseTable from "@/components/HouseTable.vue";
 import { api } from "@/api";
-import { ref } from "vue";
+import { ref, type Ref } from "vue";
 
 const tableData = ref([]);
+const reactiveQuery = ref({});
+const throttle = createThrottle(500);
 
 getHouses();
 
@@ -18,12 +20,50 @@ async function getHouses(query?: Query) {
         console.error(error);
     }
 }
+
+/**
+ * Ограничение на количество запросов в секунду
+ * чтобы не перегружать сервер
+ */
+function getHousesWithThrottle(query: Query) {
+    reactiveQuery.value = query;
+    throttle(getHouses, reactiveQuery);
+}
+
+/**
+ * Реализовал в виде замыкания, чтобы
+ * потенциально можно было создать
+ * несколько экземпляров и использовать
+ * для разных запросов. В случае
+ * переиспользования вынес бы в папку utils
+ */
+function createThrottle(interval: number) {
+    let readyToChange = true;
+
+    function throttle(callback: Function, ref: Ref) {
+        if (!readyToChange) return;
+
+        const oldValue = ref.value;
+        callback(ref.value);
+        readyToChange = false;
+
+        setTimeout(() => {
+            readyToChange = true;
+
+            if (ref.value !== oldValue) {
+                throttle(callback, ref);
+            }
+        }, interval);
+    }
+
+    return throttle;
+}
 </script>
 
 <template>
     <div>
         <div class="wrapper">
-            <HouseFilter @query="getHouses" />
+            <HouseFilter @query="getHousesWithThrottle" />
             <div class="data">
                 <h1>Find your dream home!</h1>
                 <HouseTable v-if="tableData && tableData.length" :data="tableData" />
